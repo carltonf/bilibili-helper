@@ -578,7 +578,7 @@ chrome.webRequest.onHeadersReceived.addListener(function(details) {
 }, ["responseHeaders", "blocking"]);
 
 // Set up downloaded file name
-chrome.downloads.onDeterminingFilename.addListener(function(item, __suggest) {
+var biliHelperFilenameDeterminer = function(item, __suggest) {
 	function suggest(filename, conflictAction) {
 		if (filename === undefined){
 			__suggest();
@@ -614,4 +614,49 @@ chrome.downloads.onDeterminingFilename.addListener(function(item, __suggest) {
 	} else {
 		suggest();
 	}
-});
+};
+
+var biliHelperFilenameDeterminerIsEnabled = false;
+
+var biliHelperFilenameDeterminerEnabler = function(evtInfo){
+	function biliDynamicDownloader(activeTabUrl){
+		var matchRes = activeTabUrl.match(/:\/\/(.[^/]+)/);
+
+		// whether it's bilibili site
+		if( matchRes &&  matchRes[1] === "www.bilibili.com" ){
+			if ( !biliHelperFilenameDeterminerIsEnabled ){
+				biliHelperFilenameDeterminerIsEnabled = true;
+
+				chrome.downloads.onDeterminingFilename.addListener(biliHelperFilenameDeterminer);
+			}
+		} else {
+			biliHelperFilenameDeterminerIsEnabled = false;
+
+			chrome.downloads.onDeterminingFilename.removeListener(biliHelperFilenameDeterminer);
+		}
+	}
+
+	if ( typeof evtInfo === 'number' ){
+		// windows.onFocusChanged
+		chrome.tabs.query({active: true, currentWindow: true, windowId: evtInfo}, function(tabs){
+			// it's possible for some windows to not have tabs (debug console)
+			var tab = tabs[0] || {url: ''};
+			console.log("onFocusChanged> The newly activated tab is: " + tab.url);
+
+			biliDynamicDownloader(tab.url);
+		});
+	} else {
+		// tabs.onActivated
+		chrome.tabs.get(evtInfo.tabId, function(tab){
+			console.log("onActivated> The newly activated tab is: " + tab.url);
+
+			biliDynamicDownloader(tab.url);
+		});
+	}
+};
+
+// Every window has its own active tab, switching between windows WON'T trigger "onActivated"
+chrome.tabs.onActivated.addListener( biliHelperFilenameDeterminerEnabler );
+// When the current window doesn't change, switching tabs WON'T trigger "onFocusChanged"
+// However, various actions, i.e. click on a menu, could also trigger this event.
+chrome.windows.onFocusChanged.addListener( biliHelperFilenameDeterminerEnabler );
