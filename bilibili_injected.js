@@ -319,6 +319,9 @@
 			}
 			if (biliHelper.playbackUrls && biliHelper.playbackUrls.length == 1) {
 				biliHelper.mainBlock.switcherSection.find('a[type="html5"]').removeClass('hidden');
+
+				// FIX local source html5 doesn't have to wait till bilibiliHelper finish all the api queries, this is a limit imposed by the current init order.
+				biliHelper.mainBlock.switcherSection.find('a[type="html5local"]').removeClass('hidden');
 			}
 			$('#loading-notice').fadeOut(300);
 			if (biliHelper.favorHTML5 && localStorage.getItem('bilimac_player_type') != 'force' && biliHelper.cid && biliHelper.playbackUrls && biliHelper.playbackUrls.length == 1 && biliHelper.playbackUrls[0].url.indexOf('m3u8') < 0) {
@@ -462,6 +465,58 @@
 						}
 					});
 				},
+				html5local: function(){
+					this.set('html5local');
+					// FIX the rest code of this function is EXACTLY the SAME as
+					// in html5, factor them out.
+					var abp = ABP.create(document.getElementById("bilibili_helper_html5_player"), {
+						src: {
+							playlist: [{
+								video: document.getElementById("bilibili_helper_html5_player_video"),
+								comments: "http://comment.bilibili.com/" + biliHelper.cid + ".xml"
+							}]
+						},
+						width: "100%",
+						height: "100%",
+						config: biliHelper.playerConfig
+					});
+					abp.playerUnit.addEventListener("wide", function() {
+						$("#bofqi").addClass("wide");
+					});
+					abp.playerUnit.addEventListener("normal", function() {
+						$("#bofqi").removeClass("wide");
+					});
+					abp.playerUnit.addEventListener("sendcomment", function(e) {
+						var commentId = e.detail.id,
+							commentData = e.detail;
+						delete e.detail.id;
+						chrome.extension.sendMessage({
+							command: "sendComment",
+							avid: biliHelper.avid,
+							cid: biliHelper.cid,
+							page: biliHelper.page + biliHelper.pageOffset,
+							comment: commentData
+						}, function(response) {
+							response.tmp_id = commentId;
+							abp.commentCallback(response);
+						});
+					});
+					abp.playerUnit.addEventListener("saveconfig", function(e) {
+						chrome.extension.sendMessage({
+							command: "savePlayerConfig",
+							config: e.detail
+						});
+					});
+					var bofqiHeight = 0;
+					$(window).scroll(function() {
+						if (bofqiHeight != $("#bofqi").width()) {
+							bofqiHeight = $("#bofqi").width();
+							if (abp && abp.cmManager) {
+								abp.cmManager.setBounds();
+							}
+						}
+					});
+				},
 				bilimac: function() {
 					this.set('bilimac');
 					$('#bofqi').html('<div id="player_placeholder" class="player"></div><div id="loading-notice">正在加载 Bilibili Mac 客户端…</div>');
@@ -497,6 +552,55 @@
 			biliHelper.mainBlock.switcherSection.find('p').append($('<a class="b-btn w" type="original">原始播放器</a><a class="b-btn w hidden" type="bilimac">Mac 客户端</a><a class="b-btn w hidden" type="swf">SWF 播放器</a><a class="b-btn w hidden" type="iframe">Iframe 播放器</a><a class="b-btn w hidden" type="html5">HTML5 播放器</a>').click(function() {
 				biliHelper.switcher[$(this).attr('type')]();
 			}));
+			// prompt for local file
+			// [ref] how to style input file: http://stackoverflow.com/a/28075416/2526378
+			biliHelper.mainBlock.switcherSection.find('p').append($('<a class="b-btn w hidden" type="html5local"><label for="html5local-input-Id" style="cursor: inherit;">HTML5 本地播放器</label><input id="html5local-input-Id" type="file" style="position: fixed; top: -100em"></a>'));
+
+			(function localFileVideoPlayerInit(win) {
+				var $switcherSection = biliHelper.mainBlock.switcherSection;
+
+				var URL = win.URL || win.webkitURL;
+				var playLocalVideo = function (event) {
+					// no file is selected.
+					if (this.files.length < 1)
+						return;
+
+					// TODO better html template, also this part gets repeatedly initialized
+					$('#bofqi').html('<div id="bilibili_helper_html5_player" class="player"><video id="bilibili_helper_html5_player_video" poster="' + biliHelper.videoPic + '" autobuffer preload="auto" crossorigin="anonymous"></video></div>');
+
+
+					var file = this.files[0];
+					var type = file.type;
+
+					var videoNode = document.querySelector('#bilibili_helper_html5_player > video');
+
+					if ( !videoNode.canPlayType(type) ){
+						console.error(file.name + ' is NOT playable!');
+						alert(file.name + ' is NOT playable!');
+
+						return;
+					}
+
+					var fileURL = URL.createObjectURL(file);
+
+					videoNode.src = fileURL;
+
+					// continue ABP setup
+					biliHelper.switcher.html5local();
+				};
+
+				// note the whole biliHelper.mainBlock is inserted into the DOM at a much later stage
+				var	html5localInputNode = $switcherSection.find('#html5local-input-Id')[0];
+
+				if (!URL) {
+					console.error('Your browser is not ' +
+								  '<a href="http://caniuse.com/bloburls">supported</a>!', true);
+					return;
+				}
+
+				html5localInputNode.addEventListener('change', playLocalVideo, false);
+			}(window));
+
 			if (biliHelper.redirectUrl) {
 				biliHelper.mainBlock.switcherSection.find('a[type="original"]').addClass('hidden');
 				biliHelper.mainBlock.switcherSection.find('a[type="swf"],a[type="iframe"]').removeClass('hidden');
