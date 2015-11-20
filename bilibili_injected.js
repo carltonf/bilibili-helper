@@ -565,28 +565,33 @@
 					if (this.files.length < 1)
 						return;
 
-					// TODO better html template, also this part gets repeatedly initialized
-					$('#bofqi').html('<div id="bilibili_helper_html5_player" class="player"><video id="bilibili_helper_html5_player_video" poster="' + biliHelper.videoPic + '" autobuffer preload="auto" crossorigin="anonymous"></video></div>');
-
-
 					var file = this.files[0];
-					var type = file.type;
 
-					var videoNode = document.querySelector('#bilibili_helper_html5_player > video');
+					// TODO better html template, also this part gets repeatedly initialized
+					var templateSnippet = chrome.extension.getURL("templates/templateSnippets.html");
+					$('#bofqi').load(
+						templateSnippet,
+						function(){
+							var tNode = document.querySelector("#tpl-bilibili_helper_html5_player");
+							var type = file.type;
+							// insert Snippet
+							var videoNode = tNode.content.querySelector('#bilibili_helper_html5_player_video');
 
-					if ( !videoNode.canPlayType(type) ){
-						console.error(file.name + ' is NOT playable!');
-						alert(file.name + ' is NOT playable!');
+							if ( !videoNode.canPlayType(type) ){
+								console.error(file.name + ' is NOT playable!');
+								alert(file.name + ' is NOT playable!');
 
-						return;
-					}
+								return;
+							}
 
-					var fileURL = URL.createObjectURL(file);
+							var fileURL = URL.createObjectURL(file);
 
-					videoNode.src = fileURL;
+							videoNode.src = fileURL;
 
-					// continue ABP setup
-					biliHelper.switcher.html5local();
+							$('#bofqi')[0].appendChild(document.importNode(tNode.content, true));
+							// continue ABP setup
+							biliHelper.switcher.html5local();
+						});
 				};
 
 				// note the whole biliHelper.mainBlock is inserted into the DOM at a much later stage
