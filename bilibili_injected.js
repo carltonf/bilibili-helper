@@ -554,8 +554,7 @@ function() {
 				biliHelper.switcher[$(this).attr('type')]();
 			}));
 			// prompt for local file
-			// [ref] how to style input file: http://stackoverflow.com/a/28075416/2526378
-			biliHelper.mainBlock.switcherSection.find('p').append($('<a class="b-btn w hidden" type="html5local"><label for="html5local-input-Id" style="cursor: inherit;">HTML5 本地播放器</label><input id="html5local-input-Id" type="file" style="position: fixed; top: -100em"></a>'));
+			biliHelper.mainBlock.switcherSection.find('p').append($('<a class="b-btn w hidden" type="html5local"><label for="html5local-input-Id">HTML5 本地播放</label><input id="html5local-input-Id" type="file"></a>'));
 
 			(function localFileVideoPlayerInit(win) {
 				var $switcherSection = biliHelper.mainBlock.switcherSection;

@@ -14,6 +14,7 @@
    "content_scripts": [ {
       "all_frames": true,
       "js": [ "filename-sanitize.js", "jq.bilibili.js", "htmlTemplatesLoader.js" ,"bilibili_injected.js", "ColPick.js", "CommentCoreLibrary.min.js", "ABPlayer.min.js", "hls.min.js" ],
+	  "css": [ "helperBlock.css" ],
       "matches": [ "*://*.bilibili.com/*" ],
       "run_at": "document_end"
    } ],

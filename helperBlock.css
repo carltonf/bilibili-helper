@@ -1,0 +1,15 @@
+label[for="html5local-input-Id"] {
+  cursor: inherit;
+  /* offset the paddings imposed by parent "<a>" */
+  margin: -4px -6px;
+  padding: 4px 6px;
+}
+
+/**
+ * Trick to hide input element
+ * [ref] how to style input file: http://stackoverflow.com/a/28075416/2526378
+ */
+input#html5local-input-Id {
+  position: fixed;
+  top: -100em;
+}
