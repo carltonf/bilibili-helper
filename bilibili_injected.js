@@ -319,8 +319,11 @@
 			}
 			if (biliHelper.playbackUrls && biliHelper.playbackUrls.length == 1) {
 				biliHelper.mainBlock.switcherSection.find('a[type="html5"]').removeClass('hidden');
-
-				// FIX local source html5 doesn't have to wait till bilibiliHelper finish all the api queries, this is a limit imposed by the current init order.
+			}
+			else {
+				// FIX local source html5 doesn't have to wait till
+				// bilibiliHelper finish all the api queries, this is a limit
+				// imposed by the current init order.
 				biliHelper.mainBlock.switcherSection.find('a[type="html5local"]').removeClass('hidden');
 			}
 			$('#loading-notice').fadeOut(300);
